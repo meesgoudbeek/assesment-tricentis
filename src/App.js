@@ -1,24 +1,50 @@
-import logo from './logo.svg';
-import './App.css';
+import { useEffect, useMemo, useState } from "react";
+
+import "./App.css";
 
 function App() {
+  const defaultValues = ["A", "B", "C", "D", "E"];
+
+  const [{ albums, displayList }, setAlbumsState] = useState({
+    albums: [...defaultValues],
+    displayList: [...defaultValues],
+    albumIndex: 0,
+  });
+
+  useEffect(
+    function setupInterval() {
+      setInterval(function shiftListElements() {
+        setAlbumsState((prevState) => ({
+          ...prevState,
+          displayList: [
+            ...prevState.displayList.slice(1),
+            prevState.albums[prevState.albumIndex],
+          ],
+          albumIndex:
+            prevState.albumIndex !== albums.length - 1
+              ? prevState.albumIndex + 1
+              : 0,
+        }));
+      }, 1000);
+    },
+    [albums.length]
+  );
+
+  const albumList = useMemo(
+    () =>
+      displayList.map((elem) => (
+        <li className="item" key={elem}>
+          {elem}
+        </li>
+      )),
+    [displayList]
+  );
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <main className="App">
+      <input placeholder="Search band" className="input" />
+      <ul className="list">{albumList}</ul>
+    </main>
   );
 }
 
