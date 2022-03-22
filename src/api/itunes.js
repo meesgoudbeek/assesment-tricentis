@@ -1,7 +1,7 @@
-const endpoint = "https://itunes.apple.com/search?term=";
+import { itunesEndpointUrl } from "../constants/endpoints";
 
 export function fetchAlbums(searchTerm = "") {
-  return fetch(`${endpoint}${searchTerm}`)
+  return fetch(`${itunesEndpointUrl}${searchTerm}`)
     .then(function handleResponse(response) {
       if (!response.ok) throw Error("Request not successful");
 

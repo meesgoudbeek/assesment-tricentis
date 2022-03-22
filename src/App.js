@@ -1,36 +1,75 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { debounce } from "./utils/general";
+import { fetchAlbums } from "./api/itunes";
+import { defaultAlbums } from "./constants/itunes";
 
 import "./App.css";
 
 function App() {
-  const defaultValues = ["A", "B", "C", "D", "E"];
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [{ albums, displayList }, setAlbumsState] = useState({
-    albums: [...defaultValues],
-    displayList: [...defaultValues],
+    albums: [...defaultAlbums],
+    displayList: [...defaultAlbums],
     albumIndex: 0,
   });
 
-  useEffect(
-    function setupInterval() {
-      setInterval(function shiftListElements() {
-        setAlbumsState((prevState) => ({
-          ...prevState,
-          displayList: [
-            ...prevState.displayList.slice(1),
-            prevState.albums[prevState.albumIndex],
-          ],
-          albumIndex:
-            prevState.albumIndex !== albums.length - 1
-              ? prevState.albumIndex + 1
-              : 0,
-        }));
-      }, 1000);
-    },
-    [albums.length]
-  );
+  function changeAlbums(newAlbums) {
+    if (newAlbums) {
+      setAlbumsState((prevState) => {
+        const uniqueNewAlbums = newAlbums.filter(function isNotInPrevAlbums(
+          album
+        ) {
+          return !prevState.albums.includes(album);
+        });
 
-  const albumList = useMemo(
+        return {
+          ...prevState,
+          albums: [
+            ...uniqueNewAlbums,
+            ...prevState.albums.slice(uniqueNewAlbums.length),
+          ],
+          albumIndex: uniqueNewAlbums.length === 0 ? prevState.albumIndex : 0,
+        };
+      });
+    }
+  }
+
+  function updateAlbums(newSearchTerm) {
+    fetchAlbums(newSearchTerm).then(changeAlbums).catch(console.log);
+  }
+
+  const debouncedUpdateAlbums = useCallback(debounce(updateAlbums, 500), []);
+
+  function onSearchTermChange(event) {
+    if (event.target.value !== searchTerm) {
+      debouncedUpdateAlbums(event.target.value);
+      setSearchTerm(event.target.value);
+    }
+  }
+
+  useEffect(function setupInterval() {
+    const intervalId = setInterval(function shiftListElements() {
+      setAlbumsState((prevState) => ({
+        ...prevState,
+        displayList: [
+          ...prevState.displayList.slice(1),
+          prevState.albums[prevState.albumIndex],
+        ],
+        albumIndex:
+          prevState.albumIndex !== albums.length - 1
+            ? prevState.albumIndex + 1
+            : 0,
+      }));
+    }, 1000);
+
+    return function cleanUpInterval() {
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  const listJsx = useMemo(
     () =>
       displayList.map((elem) => (
         <li className="item" key={elem}>
@@ -42,8 +81,13 @@ function App() {
 
   return (
     <main className="App">
-      <input placeholder="Search band" className="input" />
-      <ul className="list">{albumList}</ul>
+      <input
+        value={searchTerm}
+        onChange={onSearchTermChange}
+        placeholder="Search band"
+        className="input"
+      />
+      <ul className="list">{listJsx}</ul>
     </main>
   );
 }
